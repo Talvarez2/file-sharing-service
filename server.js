@@ -1,0 +1,85 @@
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { nanoid } = require('nanoid');
+const db = require('./src/db');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || '52428800'); // 50MB
+const DEFAULT_TTL = process.env.DEFAULT_TTL || '24h';
+
+const uploadsDir = path.join(__dirname, 'uploads');
+fs.mkdirSync(uploadsDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: uploadsDir,
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+});
+const upload = multer({ storage, limits: { fileSize: MAX_FILE_SIZE } });
+
+app.use(express.json());
+app.use(express.static('public'));
+
+// Parse TTL string to ms
+function parseTTL(ttl) {
+  const units = { h: 3600000, d: 86400000 };
+  const match = ttl.match(/^(\d+)([hd])$/);
+  return match ? parseInt(match[1]) * units[match[2]] : 86400000;
+}
+
+// Upload
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file provided' });
+
+  const code = nanoid(10);
+  const ttl = req.body.ttl || DEFAULT_TTL;
+  const expiresAt = new Date(Date.now() + parseTTL(ttl)).toISOString();
+  const maxDownloads = req.body.maxDownloads ? parseInt(req.body.maxDownloads) : null;
+  const password = req.body.password || null;
+
+  db.prepare(`
+    INSERT INTO files (code, original_name, mime_type, size, path, expires_at, max_downloads, password)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(code, req.file.originalname, req.file.mimetype, req.file.size, req.file.filename, expiresAt, maxDownloads, password);
+
+  res.json({ code, url: `${BASE_URL}/d/${code}`, expiresAt });
+});
+
+// File info
+app.get('/api/files/:code', (req, res) => {
+  const file = db.prepare('SELECT code, original_name, mime_type, size, created_at, expires_at, download_count, max_downloads, password FROM files WHERE code = ?').get(req.params.code);
+  if (!file) return res.status(404).json({ error: 'File not found' });
+  if (new Date(file.expires_at) < new Date()) return res.status(410).json({ error: 'File expired' });
+  res.json({ ...file, hasPassword: !!file.password, password: undefined });
+});
+
+// Download
+app.get('/d/:code', (req, res) => {
+  const file = db.prepare('SELECT * FROM files WHERE code = ?').get(req.params.code);
+  if (!file) return res.status(404).send('File not found');
+  if (new Date(file.expires_at) < new Date()) return res.status(410).send('File expired');
+  if (file.max_downloads && file.download_count >= file.max_downloads) return res.status(410).send('Download limit reached');
+
+  if (file.password && req.query.password !== file.password) {
+    return res.sendFile(path.join(__dirname, 'public', 'download.html'));
+  }
+
+  db.prepare('UPDATE files SET download_count = download_count + 1 WHERE code = ?').run(req.params.code);
+  res.download(path.join(uploadsDir, file.path), file.original_name);
+});
+
+// Cleanup expired files
+function cleanup() {
+  const expired = db.prepare("SELECT path FROM files WHERE expires_at < datetime('now')").all();
+  for (const f of expired) {
+    const filePath = path.join(uploadsDir, f.path);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  }
+  db.prepare("DELETE FROM files WHERE expires_at < datetime('now')").run();
+}
+setInterval(cleanup, 60000);
+
+app.listen(PORT, () => console.log(`Server running on ${BASE_URL}`));
