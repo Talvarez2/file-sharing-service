@@ -1,0 +1,225 @@
+:root {
+  --bg: #0f0f0f;
+  --surface: #1a1a2e;
+  --primary: #6c63ff;
+  --primary-hover: #5a52d5;
+  --text: #e0e0e0;
+  --text-muted: #888;
+  --border: #2a2a3e;
+  --success: #4caf50;
+  --radius: 12px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.container {
+  max-width: 600px;
+  width: 100%;
+  padding: 2rem;
+  margin-top: 4rem;
+}
+
+h1 {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  text-align: center;
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+}
+
+/* Drop Zone */
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--surface);
+}
+
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--primary);
+  background: rgba(108, 99, 255, 0.05);
+}
+
+.drop-zone-icon { font-size: 3rem; margin-bottom: 1rem; }
+.drop-zone-text { color: var(--text-muted); }
+
+/* Options */
+.options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.options label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.options select, .options input {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+/* Progress */
+.progress-container {
+  display: none;
+  margin-top: 1.5rem;
+}
+
+.progress-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--primary);
+  width: 0%;
+  transition: width 0.2s;
+}
+
+.progress-text {
+  text-align: center;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Result */
+.result {
+  display: none;
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.result a {
+  color: var(--primary);
+  word-break: break-all;
+  font-size: 1.1rem;
+}
+
+.result .expires {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.copy-btn {
+  margin-top: 0.75rem;
+  padding: 0.5rem 1.5rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.copy-btn:hover { background: var(--primary-hover); }
+
+/* Download Page */
+.file-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 2rem;
+  text-align: center;
+}
+
+.file-card .file-icon { font-size: 3rem; margin-bottom: 1rem; }
+.file-card .file-name { font-size: 1.2rem; margin-bottom: 0.5rem; }
+.file-card .file-meta { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+
+.download-btn {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  text-decoration: none;
+}
+
+.download-btn:hover { background: var(--primary-hover); }
+
+.password-input {
+  display: none;
+  margin-bottom: 1rem;
+}
+
+.password-input input {
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  width: 100%;
+  max-width: 250px;
+}
+
+.error-msg {
+  color: #ef5350;
+  margin-top: 1rem;
+  display: none;
+}
+
+.qr-container {
+  margin-top: 1rem;
+}
+
+.qr-container img {
+  border-radius: 8px;
+  background: white;
+  padding: 8px;
+}
+
+/* Preview */
+.preview-container {
+  margin-top: 1rem;
+  max-width: 100%;
+}
+
+.preview-container img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+}
+
+.preview-container pre {
+  background: var(--bg);
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  max-height: 300px;
+  font-size: 0.85rem;
+  text-align: left;
+}

@@ -56,16 +56,15 @@ app.get('/api/files/:code', (req, res) => {
   res.json({ ...file, hasPassword: !!file.password, password: undefined });
 });
 
-// Download
+// Download page
 app.get('/d/:code', (req, res) => {
   const file = db.prepare('SELECT * FROM files WHERE code = ?').get(req.params.code);
-  if (!file) return res.status(404).send('File not found');
-  if (new Date(file.expires_at) < new Date()) return res.status(410).send('File expired');
-  if (file.max_downloads && file.download_count >= file.max_downloads) return res.status(410).send('Download limit reached');
+  if (!file) return res.status(404).sendFile(path.join(__dirname, 'public', 'download.html'));
+  if (req.query.download !== '1') return res.sendFile(path.join(__dirname, 'public', 'download.html'));
 
-  if (file.password && req.query.password !== file.password) {
-    return res.sendFile(path.join(__dirname, 'public', 'download.html'));
-  }
+  if (new Date(file.expires_at) < new Date()) return res.status(410).json({ error: 'File expired' });
+  if (file.max_downloads && file.download_count >= file.max_downloads) return res.status(410).json({ error: 'Download limit reached' });
+  if (file.password && req.query.password !== file.password) return res.status(403).json({ error: 'Invalid password' });
 
   db.prepare('UPDATE files SET download_count = download_count + 1 WHERE code = ?').run(req.params.code);
   res.download(path.join(uploadsDir, file.path), file.original_name);
