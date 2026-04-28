@@ -45,6 +45,7 @@ function uploadFile(file) {
       link.href = data.url;
       link.textContent = data.url;
       document.getElementById('expiresAt').textContent = 'Expires: ' + new Date(data.expiresAt).toLocaleString();
+      document.getElementById('qrContainer').innerHTML = `<img src="/api/qr/${data.code}" alt="QR Code" width="150">`;
     } else {
       progressText.textContent = 'Upload failed: ' + (JSON.parse(xhr.responseText).error || 'Unknown error');
     }

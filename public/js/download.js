@@ -28,6 +28,18 @@ fetch(`/api/files/${code}`)
       document.getElementById('passwordSection').style.display = 'block';
     }
 
+    // Load preview for images and text
+    if (!file.hasPassword) {
+      const preview = document.getElementById('previewContainer');
+      if (file.mime_type.startsWith('image/')) {
+        preview.innerHTML = `<img src="/api/preview/${code}" alt="Preview">`;
+      } else if (file.mime_type.startsWith('text/') || ['application/json', 'application/xml', 'application/javascript'].includes(file.mime_type)) {
+        fetch(`/api/preview/${code}`).then(r => r.json()).then(d => {
+          if (d.type === 'text') preview.innerHTML = `<pre>${d.content.replace(/</g, '&lt;')}</pre>`;
+        });
+      }
+    }
+
     document.getElementById('downloadBtn').onclick = () => {
       const pw = document.getElementById('dlPassword').value;
       const params = new URLSearchParams({ download: '1' });

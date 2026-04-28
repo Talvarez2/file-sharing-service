@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { nanoid } = require('nanoid');
+const QRCode = require('qrcode');
 const db = require('./src/db');
 
 const app = express();
@@ -54,6 +55,32 @@ app.get('/api/files/:code', (req, res) => {
   if (!file) return res.status(404).json({ error: 'File not found' });
   if (new Date(file.expires_at) < new Date()) return res.status(410).json({ error: 'File expired' });
   res.json({ ...file, hasPassword: !!file.password, password: undefined });
+});
+
+// QR code
+app.get('/api/qr/:code', async (req, res) => {
+  const file = db.prepare('SELECT code FROM files WHERE code = ?').get(req.params.code);
+  if (!file) return res.status(404).json({ error: 'File not found' });
+  const url = `${BASE_URL}/d/${file.code}`;
+  res.type('png').send(await QRCode.toBuffer(url, { width: 256, margin: 2 }));
+});
+
+// File preview (images and text)
+app.get('/api/preview/:code', (req, res) => {
+  const file = db.prepare('SELECT * FROM files WHERE code = ?').get(req.params.code);
+  if (!file) return res.status(404).json({ error: 'File not found' });
+  if (new Date(file.expires_at) < new Date()) return res.status(410).json({ error: 'File expired' });
+  if (file.password && req.query.password !== file.password) return res.status(403).json({ error: 'Password required' });
+
+  const filePath = path.join(uploadsDir, file.path);
+  if (file.mime_type.startsWith('image/')) {
+    return res.type(file.mime_type).sendFile(filePath);
+  }
+  if (file.mime_type.startsWith('text/') || ['application/json', 'application/xml', 'application/javascript'].includes(file.mime_type)) {
+    const content = fs.readFileSync(filePath, 'utf-8').slice(0, 50000);
+    return res.json({ type: 'text', content });
+  }
+  res.json({ type: 'none' });
 });
 
 // Download page
