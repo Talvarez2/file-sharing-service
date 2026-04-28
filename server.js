@@ -70,15 +70,25 @@ app.get('/d/:code', (req, res) => {
   res.download(path.join(uploadsDir, file.path), file.original_name);
 });
 
-// Cleanup expired files
+// Cleanup expired files and download-limited files
 function cleanup() {
-  const expired = db.prepare("SELECT path FROM files WHERE expires_at < datetime('now')").all();
+  const expired = db.prepare("SELECT path FROM files WHERE expires_at < datetime('now') OR (max_downloads IS NOT NULL AND download_count >= max_downloads)").all();
   for (const f of expired) {
     const filePath = path.join(uploadsDir, f.path);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   }
-  db.prepare("DELETE FROM files WHERE expires_at < datetime('now')").run();
+  db.prepare("DELETE FROM files WHERE expires_at < datetime('now') OR (max_downloads IS NOT NULL AND download_count >= max_downloads)").run();
+  console.log(`[cleanup] Removed ${expired.length} expired/exhausted files`);
 }
 setInterval(cleanup, 60000);
+cleanup(); // Run on startup
+
+// Multer error handling
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ error: `File too large. Max size: ${MAX_FILE_SIZE / 1048576}MB` });
+  }
+  next(err);
+});
 
 app.listen(PORT, () => console.log(`Server running on ${BASE_URL}`));
